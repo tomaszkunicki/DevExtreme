@@ -82,24 +82,17 @@ const eventsEngine = injector({
             || NO_BUBBLE_EVENTS.indexOf(eventName) !== -1;
 
         if(!noBubble) {
-            const parents = [];
-            const getParents = function(element) {
-                const parent = element.parentNode;
-                if(parent) {
-                    parents.push(parent);
-                    getParents(parent);
+            let parent = element;
+            while(!event.isPropagationStopped()) {
+                parent = parent.parentNode || parent.host || window;
+                if(parent instanceof HTMLElement) {
+                    const parentDataByEvent = getHandlersController(parent, event.type);
+                    parentDataByEvent.callHandlers(extend(event, { currentTarget: parent }), extraParameters);
+                    if(parent === window) {
+                        break;
+                    }    
                 }
-            };
-            getParents(element);
-            parents.push(window);
-
-            let i = 0;
-
-            while(parents[i] && !event.isPropagationStopped()) {
-                const parentDataByEvent = getHandlersController(parents[i], event.type);
-                parentDataByEvent.callHandlers(extend(event, { currentTarget: parents[i] }), extraParameters);
-                i++;
-            }
+            }            
         }
 
         if(element.nodeType || isWindow(element)) {
